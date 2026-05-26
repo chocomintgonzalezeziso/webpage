@@ -3,48 +3,67 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>自己紹介</title>
+    <title>へんてこテニス</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="page">
-      <section class="profile">
-        <div class="avatar" aria-hidden="true">自</div>
-        <div class="intro">
-          <p class="eyebrow">Profile</p>
-          <h1>こんにちは、〇〇です。</h1>
-          <p class="lead">
-            好きなことを少しずつ形にしながら、毎日を楽しく過ごしています。
-          </p>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Arcade Tennis</p>
+          <h1>へんてこテニス</h1>
+        </div>
+        <button class="reset-button" type="button" id="resetButton">リセット</button>
+      </header>
+
+      <section class="scoreboard" aria-label="スコア">
+        <div>
+          <span>YOU</span>
+          <strong id="playerScore">0</strong>
+        </div>
+        <div>
+          <span>CPU</span>
+          <strong id="cpuScore">0</strong>
+        </div>
+        <div>
+          <span>RALLY</span>
+          <strong id="rallyCount">0</strong>
+        </div>
+        <div>
+          <span>POWER</span>
+          <strong id="powerText">0%</strong>
         </div>
       </section>
 
-      <section class="content">
-        <div class="block">
-          <h2>About</h2>
-          <p>
-            ここに自分のことを書きます。学校、仕事、得意なこと、最近がんばっていることなどを
-            短くまとめると読みやすくなります。
-          </p>
-        </div>
-
-        <div class="block">
-          <h2>好きなこと</h2>
-          <ul class="tags">
-            <li>バスケ</li>
-            <li>音楽</li>
-            <li>ゲーム</li>
-            <li>ものづくり</li>
-          </ul>
-        </div>
-
-        <div class="block">
-          <h2>ひとこと</h2>
-          <p>
-            これからいろいろなことに挑戦して、自分らしいページに育てていきたいです。
-          </p>
+      <section class="court-wrap">
+        <canvas id="game" width="720" height="960" aria-label="テニスゲーム"></canvas>
+        <div class="message" id="message">
+          <strong>スペースで相手サーブを受ける</strong>
+          <span>左右キー / A Dで移動。Q:クロス E:ストレート / Z:スピン X:スライス C:フラット。</span>
         </div>
       </section>
+
+      <section class="shot-panel" aria-label="キー操作">
+        <div class="control-group">
+          <span>方向</span>
+          <kbd id="crossKey" class="choice active">Q クロス</kbd>
+          <kbd id="straightKey" class="choice">E ストレート</kbd>
+        </div>
+        <div class="control-group">
+          <span>球種</span>
+          <kbd id="spinKey" class="choice active">Z スピン</kbd>
+          <kbd id="sliceKey" class="choice">X スライス</kbd>
+          <kbd id="flatKey" class="choice">C フラット</kbd>
+        </div>
+      </section>
+
+      <div class="touch-controls" aria-label="タッチ操作">
+        <button type="button" id="upButton">左</button>
+        <button type="button" id="smashButton">スマッシュ</button>
+        <button type="button" id="downButton">右</button>
+      </div>
     </main>
+
+    <script src="game.js"></script>
   </body>
 </html>
