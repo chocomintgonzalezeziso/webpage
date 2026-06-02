@@ -11,7 +11,7 @@ const jumpButton = document.querySelector("#jumpButton");
 const slideButton = document.querySelector("#slideButton");
 
 const groundY = 418;
-const worldLength = 5900;
+const worldLength = 7600;
 const finishX = worldLength - 180;
 const gravity = 2400;
 const maxLife = 6;
@@ -143,9 +143,11 @@ function roundedRect(x, y, width, height, radius) {
 function makeObstacles() {
   const pattern = [
     ["cone", 460], ["balloon", 760], ["box", 1040], ["hurdle", 1340],
-    ["pit", 1660], ["spring", 1970], ["bar", 2700], ["rolling", 3030],
-    ["cone", 3350], ["spikes", 3680], ["box", 4000], ["swing", 4310],
-    ["hurdle", 4620], ["pit", 4930], ["rolling", 5220], ["bar", 5500],
+    ["puddle", 1660], ["spring", 1970], ["bar", 2330], ["rolling", 2660],
+    ["drone", 2960], ["tireStack", 3290], ["spikes", 3610], ["swing", 3910],
+    ["cone", 4210], ["roadblock", 4540], ["pit", 4860], ["hammer", 5180],
+    ["box", 5480], ["laser", 5810], ["hurdle", 6130], ["puddle", 6440],
+    ["rolling", 6740], ["bar", 7040],
   ];
 
   return pattern.map(([type, x], index) => {
@@ -153,12 +155,18 @@ function makeObstacles() {
     if (type === "cone") return { ...base, y: groundY - 54, width: 48, height: 54 };
     if (type === "box") return { ...base, y: groundY - 70, width: 66, height: 70 };
     if (type === "hurdle") return { ...base, y: groundY - 84, width: 82, height: 84 };
-    if (type === "bar") return { ...base, y: groundY - 126, width: 104, height: 38 };
+    if (type === "bar") return { ...base, y: groundY - 110, width: 104, height: 38 };
     if (type === "balloon") return { ...base, y: groundY - 118, width: 56, height: 70 };
     if (type === "spring") return { ...base, y: groundY - 42, width: 74, height: 42 };
     if (type === "rolling") return { ...base, y: groundY - 54, width: 58, height: 58 };
     if (type === "spikes") return { ...base, y: groundY - 38, width: 112, height: 38 };
     if (type === "swing") return { ...base, y: groundY - 164, width: 92, height: 92 };
+    if (type === "puddle") return { ...base, y: groundY - 18, width: 118, height: 18 };
+    if (type === "tireStack") return { ...base, y: groundY - 92, width: 72, height: 92 };
+    if (type === "drone") return { ...base, y: groundY - 116, width: 84, height: 48 };
+    if (type === "roadblock") return { ...base, y: groundY - 68, width: 104, height: 68 };
+    if (type === "hammer") return { ...base, y: groundY - 132, width: 82, height: 62 };
+    if (type === "laser") return { ...base, y: groundY - 94, width: 126, height: 30 };
     return { ...base, y: groundY - 10, width: 132 + (index % 2) * 34, height: 36 };
   });
 }
@@ -317,7 +325,8 @@ function updateCpuRunners(dt) {
     runner.jumpCooldown -= dt;
 
     const nextObstacle = obstacles.find((obstacle) => obstacle.x > runner.distance + 110 && obstacle.x < runner.distance + 240);
-    const needsJump = nextObstacle && nextObstacle.type !== "bar" && nextObstacle.type !== "balloon";
+    const duckTypes = ["bar", "balloon", "drone", "hammer", "laser"];
+    const needsJump = nextObstacle && !duckTypes.includes(nextObstacle.type);
     if (needsJump && runner.y >= runner.baseY - 1 && runner.jumpCooldown <= 0) {
       runner.vy = -720 - index * 30;
       runner.jumpCooldown = 0.9 + index * 0.18;
@@ -740,6 +749,28 @@ function drawObstacle(obstacle) {
     ctx.beginPath();
     ctx.ellipse(x + 20, obstacle.y + 14, 7, 10, -0.4, 0, Math.PI * 2);
     ctx.fill();
+  } else if (obstacle.type === "drone") {
+    const bob = Math.sin(elapsed * 5 + obstacle.x) * 5;
+    const bodyY = obstacle.y + bob;
+    ctx.strokeStyle = "#263243";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + 14, bodyY + 16);
+    ctx.lineTo(x + 70, bodyY + 16);
+    ctx.stroke();
+    ctx.fillStyle = "#3a86ff";
+    ctx.beginPath();
+    roundedRect(x + 22, bodyY + 4, 40, 28, 8);
+    ctx.fill();
+    ctx.fillStyle = "#ffd45d";
+    ctx.fillRect(x + 34, bodyY + 13, 16, 7);
+    ctx.strokeStyle = "#f6f8fb";
+    ctx.lineWidth = 3;
+    [12, 72].forEach((rotorX) => {
+      ctx.beginPath();
+      ctx.ellipse(x + rotorX, bodyY + 16, 16, 5, elapsed * 9, 0, Math.PI * 2);
+      ctx.stroke();
+    });
   } else if (obstacle.type === "spring") {
     ctx.fillStyle = "rgba(46, 196, 182, 0.22)";
     ctx.beginPath();
@@ -788,6 +819,24 @@ function drawObstacle(obstacle) {
     ctx.lineTo(0, 20);
     ctx.stroke();
     ctx.restore();
+  } else if (obstacle.type === "tireStack") {
+    for (let i = 0; i < 3; i += 1) {
+      const ty = groundY - 25 - i * 28;
+      const tx = x + 18 + (i % 2) * 16;
+      ctx.fillStyle = "#263243";
+      ctx.beginPath();
+      ctx.ellipse(tx + 18, ty, 26, 20, -0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#78b7ff";
+      ctx.beginPath();
+      ctx.ellipse(tx + 18, ty, 11, 8, -0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#f6f8fb";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(tx + 18, ty, 18, 0.4, Math.PI * 1.7);
+      ctx.stroke();
+    }
   } else if (obstacle.type === "spikes") {
     ctx.fillStyle = "#263243";
     ctx.fillRect(x, groundY - 8, obstacle.width, 8);
@@ -814,6 +863,72 @@ function drawObstacle(obstacle) {
     ctx.fill();
     ctx.fillStyle = "#ffd45d";
     ctx.fillRect(x + obstacle.width / 2 + sway - 20, obstacle.y + 42, 40, 9);
+  } else if (obstacle.type === "puddle") {
+    ctx.fillStyle = "#1d7fc0";
+    ctx.beginPath();
+    ctx.ellipse(x + obstacle.width / 2, groundY - 7, obstacle.width / 2, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(246,248,251,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(x + 34, groundY - 12, 22, 4, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(x + 78, groundY - 5, 18, 3, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (obstacle.type === "roadblock") {
+    ctx.fillStyle = "#263243";
+    ctx.fillRect(x + 8, obstacle.y + 12, 10, obstacle.height - 6);
+    ctx.fillRect(x + obstacle.width - 18, obstacle.y + 12, 10, obstacle.height - 6);
+    ctx.fillStyle = "#ff6b5f";
+    ctx.beginPath();
+    roundedRect(x, obstacle.y + 14, obstacle.width, 32, 6);
+    ctx.fill();
+    ctx.fillStyle = "#ffd45d";
+    for (let i = 0; i < 4; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(x + 10 + i * 26, obstacle.y + 42);
+      ctx.lineTo(x + 27 + i * 26, obstacle.y + 18);
+      ctx.lineTo(x + 37 + i * 26, obstacle.y + 18);
+      ctx.lineTo(x + 20 + i * 26, obstacle.y + 42);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = "#171309";
+    ctx.fillRect(x + 2, groundY - 8, obstacle.width - 4, 8);
+  } else if (obstacle.type === "hammer") {
+    const swing = Math.sin(elapsed * 4 + obstacle.x) * 0.45;
+    const pivotX = x + obstacle.width / 2;
+    const pivotY = obstacle.y - 16;
+    ctx.save();
+    ctx.translate(pivotX, pivotY);
+    ctx.rotate(swing);
+    ctx.strokeStyle = "#263243";
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 70);
+    ctx.stroke();
+    ctx.fillStyle = "#ff5d8f";
+    ctx.beginPath();
+    roundedRect(-34, 58, 68, 30, 7);
+    ctx.fill();
+    ctx.fillStyle = "#ffd45d";
+    ctx.fillRect(-20, 68, 40, 7);
+    ctx.restore();
+    ctx.fillStyle = "#f6f8fb";
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, 7, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (obstacle.type === "laser") {
+    ctx.fillStyle = "#263243";
+    ctx.beginPath();
+    roundedRect(x, obstacle.y - 20, 16, 70, 5);
+    roundedRect(x + obstacle.width - 16, obstacle.y - 20, 16, 70, 5);
+    ctx.fill();
+    const glow = 0.55 + Math.sin(elapsed * 10) * 0.22;
+    ctx.fillStyle = `rgba(255, 93, 143, ${glow})`;
+    ctx.fillRect(x + 12, obstacle.y + 7, obstacle.width - 24, 16);
+    ctx.fillStyle = "#ffd45d";
+    ctx.fillRect(x + 12, obstacle.y + 12, obstacle.width - 24, 5);
   } else {
     ctx.fillStyle = "#163024";
     ctx.beginPath();
