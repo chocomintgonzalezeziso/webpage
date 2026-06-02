@@ -62,6 +62,11 @@ let audioContext = null;
 let musicTimer = null;
 let musicStep = 0;
 let podium = [];
+let finishOrder = [];
+let playerFinished = false;
+let playerFinishTime = 0;
+let ceremonyTimer = 0;
+let rivalCpuIndex = 0;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -177,14 +182,18 @@ function makeCpuRunners() {
     y: groundY + 10 + index * 10,
     baseY: groundY + 10 + index * 10,
     vy: 0,
-    speedOffset: 0.88 + index * 0.065,
+    speedOffset: 0.9 + index * 0.035 + (index === rivalCpuIndex ? 0.115 : 0),
     jumpCooldown: 0.65 + index * 0.22,
     phase: index * 1.7,
+    rival: index === rivalCpuIndex,
+    finished: false,
+    finishTime: 0,
     palette,
   }));
 }
 
 function resetGame() {
+  rivalCpuIndex = Math.floor(Math.random() * cpuPalettes.length);
   obstacles = makeObstacles();
   cpuRunners = makeCpuRunners();
   particles = [];
@@ -198,6 +207,10 @@ function resetGame() {
   started = false;
   keys = new Set();
   podium = [];
+  finishOrder = [];
+  playerFinished = false;
+  playerFinishTime = 0;
+  ceremonyTimer = 0;
   player.y = groundY;
   player.vy = 0;
   player.sliding = false;
@@ -229,7 +242,7 @@ function updateHud() {
   distanceText.textContent = `${Math.floor(distance / 10)}m`;
   lifeText.textContent = life;
   obstacleText.textContent = obstacles.filter((obstacle) => obstacle.passed).length;
-  timeText.textContent = elapsed.toFixed(1);
+  timeText.textContent = (playerFinished ? playerFinishTime : elapsed).toFixed(1);
 }
 
 function playerWorldX() {
@@ -238,8 +251,12 @@ function playerWorldX() {
 
 function jump() {
   startGame();
-  if (player.sliding || player.jumpsRemaining <= 0) return;
+  if (finished || playerFinished || player.jumpsRemaining <= 0) return;
   const onGround = player.y >= groundY - 1;
+  if (player.sliding) {
+    player.sliding = false;
+    player.slideTimer = 0;
+  }
   player.vy = onGround ? -900 : -780;
   player.jumpsRemaining -= 1;
   sound(onGround ? "jump" : "doubleJump");
@@ -257,7 +274,7 @@ function jump() {
 
 function slide() {
   startGame();
-  if (player.y >= groundY - 1) {
+  if (!finished && !playerFinished && player.y >= groundY - 1) {
     player.sliding = true;
     player.slideTimer = 0.48;
   }
@@ -318,10 +335,26 @@ function hitObstacle(obstacle) {
   if (life <= 0) endGame(false);
 }
 
+function recordFinish(racer) {
+  if (finishOrder.some((item) => item.id === racer.id)) return;
+  finishOrder.push({
+    ...racer,
+    distance: finishX,
+    finishTime: elapsed,
+  });
+}
+
 function updateCpuRunners(dt) {
   cpuRunners.forEach((runner, index) => {
+    if (runner.finished) {
+      runner.distance = Math.min(runner.distance + speed * 0.28 * dt, finishX + 100);
+      return;
+    }
+
     const mood = Math.sin(elapsed * 0.8 + runner.phase) * 18;
-    runner.distance += (speed * runner.speedOffset + mood) * dt;
+    const racerDistance = runner.distance + 120;
+    const rivalPush = runner.rival && !playerFinished ? clamp(playerWorldX() - racerDistance, -160, 260) * 0.18 : 0;
+    runner.distance += (speed * runner.speedOffset + mood + rivalPush) * dt;
     runner.jumpCooldown -= dt;
 
     const nextObstacle = obstacles.find((obstacle) => obstacle.x > runner.distance + 110 && obstacle.x < runner.distance + 240);
@@ -339,64 +372,101 @@ function updateCpuRunners(dt) {
       runner.vy = 0;
     }
 
+    if (runner.distance + 120 >= finishX) {
+      runner.finished = true;
+      runner.finishTime = elapsed;
+      recordFinish({
+        id: `cpu-${index}`,
+        name: `CPU${index + 1}`,
+        color: runner.palette.shirt,
+      });
+      for (let i = 0; i < 10; i += 1) {
+        particles.push({
+          x: finishX - 8 + Math.random() * 28,
+          y: runner.y - 54 + Math.random() * 32,
+          vx: -120 + Math.random() * 220,
+          vy: -180 + Math.random() * 120,
+          life: 0.55,
+          color: runner.rival ? "#ffd45d" : runner.palette.shirt,
+        });
+      }
+    }
+
     if (runner.distance > finishX + 100) runner.distance = finishX + 100;
   });
 }
 
 function buildPodium() {
-  const racers = [
-    { name: "YOU", distance: playerWorldX(), color: runnerColors.vest },
-    ...cpuRunners.map((runner, index) => ({
-      name: `CPU${index + 1}`,
-      distance: runner.distance + 120,
-      color: runner.palette.shirt,
-    })),
-  ];
-  return racers
-    .filter((racer) => racer.distance >= finishX)
-    .sort((a, b) => b.distance - a.distance)
+  return finishOrder
     .slice(0, 3)
     .map((racer, index) => ({ ...racer, rank: index + 1 }));
 }
 
 function endGame(won) {
-  running = false;
+  running = won;
   finished = true;
-  podium = buildPodium();
-  messageEl.classList.remove("hidden");
+  if (won) {
+    podium = buildPodium();
+    ceremonyTimer = 0;
+    messageEl.classList.add("hidden");
+  } else {
+    messageEl.classList.remove("hidden");
+  }
   messageEl.querySelector("strong").textContent = won ? "ゴール！" : "ゲームオーバー";
   messageEl.querySelector("span").textContent = won
-    ? `タイム ${elapsed.toFixed(1)} 秒。Rキーかリセットボタンで再挑戦できます。`
+    ? `3位まで決定。タイム ${playerFinishTime.toFixed(1)} 秒。Rキーかリセットボタンで再挑戦できます。`
     : "障害物に当たりすぎました。Rキーかリセットボタンで再挑戦できます。";
   if (won) sound("finish");
 }
 
 function update(dt) {
   elapsed += dt;
-  distance += speed * dt;
+  if (finished) {
+    ceremonyTimer += dt;
+    particles = particles.filter((particle) => particle.life > 0);
+    particles.forEach((particle) => {
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      particle.vy += 520 * dt;
+      particle.life -= dt;
+    });
+    updateHud();
+    return;
+  }
+
+  if (!playerFinished) distance += speed * dt;
   speed = clamp(speed + dt * 13, 300, 430);
   cameraX = clamp(distance, 0, finishX - player.x);
 
-  player.vy += gravity * dt;
-  player.y += player.vy * dt;
-  if (player.y >= groundY) {
-    player.y = groundY;
-    player.vy = 0;
-    player.jumpsRemaining = 2;
-  }
+  if (!playerFinished) {
+    player.vy += gravity * dt;
+    player.y += player.vy * dt;
+    if (player.y >= groundY) {
+      player.y = groundY;
+      player.vy = 0;
+      player.jumpsRemaining = 2;
+    }
 
-  player.slideTimer -= dt;
-  if (player.slideTimer <= 0) player.sliding = false;
+    player.slideTimer -= dt;
+    if (player.slideTimer <= 0) player.sliding = false;
+  }
   player.invincible = Math.max(0, player.invincible - dt);
   updateCpuRunners(dt);
 
-  const rect = playerRect();
-  rect.x += distance;
-  obstacles.forEach((obstacle) => {
-    obstacle.cooldown = Math.max(0, obstacle.cooldown - dt);
-    if (!obstacle.passed && obstacle.x + obstacle.width < playerWorldX() - 6) obstacle.passed = true;
-    if (intersects(rect, obstacle)) hitObstacle(obstacle);
-  });
+  if (!playerFinished) {
+    const rect = playerRect();
+    rect.x += distance;
+    obstacles.forEach((obstacle) => {
+      obstacle.cooldown = Math.max(0, obstacle.cooldown - dt);
+      if (!obstacle.passed && obstacle.x + obstacle.width < playerWorldX() - 6) obstacle.passed = true;
+      if (intersects(rect, obstacle)) hitObstacle(obstacle);
+    });
+  }
+
+  if (finished) {
+    updateHud();
+    return;
+  }
 
   particles = particles.filter((particle) => particle.life > 0);
   particles.forEach((particle) => {
@@ -406,7 +476,27 @@ function update(dt) {
     particle.life -= dt;
   });
 
-  if (playerWorldX() >= finishX) endGame(true);
+  if (!playerFinished && playerWorldX() >= finishX) {
+    playerFinished = true;
+    playerFinishTime = elapsed;
+    distance = finishX - player.x;
+    cameraX = clamp(distance, 0, finishX - player.x);
+    player.y = groundY;
+    player.vy = 0;
+    player.sliding = false;
+    player.slideTimer = 0;
+    recordFinish({
+      id: "player",
+      name: "YOU",
+      color: runnerColors.vest,
+    });
+    messageEl.classList.remove("hidden");
+    messageEl.querySelector("strong").textContent = "ゴール！";
+    messageEl.querySelector("span").textContent = "3位まで決まるまでCPUのゴールを待っています。";
+    sound("finish");
+  }
+
+  if (playerFinished && finishOrder.length >= 3) endGame(true);
   updateHud();
 }
 
@@ -965,46 +1055,115 @@ function drawFinish() {
 
 function drawPodium() {
   if (!finished || podium.length === 0) return;
-  ctx.fillStyle = "rgba(16, 21, 31, 0.78)";
-  ctx.beginPath();
-  roundedRect(210, 74, 540, 330, 8);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(246, 248, 251, 0.28)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  const revealCount = clamp(Math.floor((ceremonyTimer - 0.25) / 0.85) + 1, 0, 3);
+  const revealRanks = [1, 2, 3].slice(0, revealCount);
+
+  ctx.fillStyle = "rgba(16, 21, 31, 0.68)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < 72; i += 1) {
+    const fall = (ceremonyTimer * (60 + (i % 7) * 9) + i * 37) % (canvas.height + 80);
+    const x = (i * 83 + Math.sin(ceremonyTimer * 2 + i) * 18) % canvas.width;
+    const y = fall - 50;
+    ctx.fillStyle = ["#ffd45d", "#ff5d8f", "#2ec4b6", "#7a5cff", "#f6f8fb"][i % 5];
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ceremonyTimer * 4 + i);
+    ctx.fillRect(-4, -2, 8, 4);
+    ctx.restore();
+  }
 
   ctx.fillStyle = "#f6f8fb";
-  ctx.font = "900 34px system-ui, sans-serif";
-  ctx.fillText("RESULT", 396, 124);
+  ctx.font = "900 44px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("RESULT", canvas.width / 2, 82);
 
   const slots = [
-    { rank: 2, x: 292, y: 286, h: 74 },
-    { rank: 1, x: 430, y: 238, h: 122 },
-    { rank: 3, x: 568, y: 306, h: 54 },
+    { rank: 2, x: 292, y: 286, h: 74, color: "#d7e1ea" },
+    { rank: 1, x: 430, y: 238, h: 122, color: "#ffd45d" },
+    { rank: 3, x: 568, y: 306, h: 54, color: "#d48a4a" },
   ];
   slots.forEach((slot) => {
     const racer = podium.find((item) => item.rank === slot.rank);
-    if (!racer) return;
-    ctx.fillStyle = slot.rank === 1 ? "#ffd45d" : slot.rank === 2 ? "#d7e1ea" : "#d48a4a";
+    if (!racer || !revealRanks.includes(slot.rank)) return;
+    const revealStart = 0.25 + (slot.rank - 1) * 0.85;
+    const t = clamp((ceremonyTimer - revealStart) / 0.45, 0, 1);
+    const bounce = Math.sin(t * Math.PI) * 18;
+    const scale = 0.82 + t * 0.18;
+    const centerX = slot.x + 50;
+    const topY = slot.y - bounce;
+
+    ctx.save();
+    ctx.translate(centerX, topY + slot.h);
+    ctx.scale(scale, scale);
+    ctx.translate(-centerX, -(topY + slot.h));
+
+    const beam = ctx.createRadialGradient(centerX, topY - 42, 20, centerX, topY + 24, 150);
+    beam.addColorStop(0, "rgba(255, 244, 184, 0.44)");
+    beam.addColorStop(1, "rgba(255, 244, 184, 0)");
+    ctx.fillStyle = beam;
     ctx.beginPath();
-    roundedRect(slot.x, slot.y, 100, slot.h, 8);
+    ctx.ellipse(centerX, topY + 12, 140, 180, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (slot.rank === 1) {
+      ctx.strokeStyle = "rgba(255, 212, 93, 0.72)";
+      ctx.lineWidth = 4;
+      for (let i = 0; i < 12; i += 1) {
+        const angle = (Math.PI * 2 * i) / 12 + ceremonyTimer * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(centerX + Math.cos(angle) * 50, topY - 48 + Math.sin(angle) * 50);
+        ctx.lineTo(centerX + Math.cos(angle) * 86, topY - 48 + Math.sin(angle) * 86);
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = slot.color;
+    ctx.beginPath();
+    roundedRect(slot.x, topY, 100, slot.h, 8);
     ctx.fill();
     ctx.fillStyle = "#171309";
     ctx.font = "900 32px system-ui, sans-serif";
-    ctx.fillText(`${slot.rank}`, slot.x + 40, slot.y + 45);
+    ctx.fillText(`${slot.rank}`, centerX, topY + 45);
 
     ctx.fillStyle = racer.color;
     ctx.beginPath();
-    ctx.arc(slot.x + 50, slot.y - 38, 25, 0, Math.PI * 2);
+    ctx.arc(centerX, topY - 38, 27, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "#f6f8fb";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    if (racer.rank === 1) {
+      ctx.fillStyle = "#ffd45d";
+      ctx.beginPath();
+      ctx.moveTo(centerX - 26, topY - 82);
+      ctx.lineTo(centerX - 13, topY - 102);
+      ctx.lineTo(centerX, topY - 84);
+      ctx.lineTo(centerX + 13, topY - 102);
+      ctx.lineTo(centerX + 26, topY - 82);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     ctx.fillStyle = "#f6f8fb";
     ctx.font = "900 18px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(racer.name, slot.x + 50, slot.y - 68);
+    ctx.fillText(racer.name, centerX, topY - 68);
     ctx.font = "800 13px system-ui, sans-serif";
-    ctx.fillText(`${Math.floor(racer.distance / 10)}m`, slot.x + 50, slot.y - 12);
-    ctx.textAlign = "start";
+    ctx.fillText(`${racer.finishTime.toFixed(1)}s`, centerX, topY - 12);
+    ctx.restore();
   });
+
+  if (revealCount < 3) {
+    ctx.fillStyle = "rgba(246, 248, 251, 0.9)";
+    ctx.font = "900 20px system-ui, sans-serif";
+    ctx.fillText(`${revealCount + 1}位 発表中`, canvas.width / 2, 124);
+  } else {
+    ctx.fillStyle = "rgba(246, 248, 251, 0.9)";
+    ctx.font = "900 20px system-ui, sans-serif";
+    ctx.fillText("3位まで決定", canvas.width / 2, 124);
+  }
+  ctx.textAlign = "start";
 }
 
 function drawProgress() {
