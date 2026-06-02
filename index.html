@@ -3,65 +3,50 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>へんてこテニス</title>
+    <title>ゴールダッシュ</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Arcade Tennis</p>
-          <h1>へんてこテニス</h1>
+          <p class="eyebrow">Side Runner</p>
+          <h1>ゴールダッシュ</h1>
         </div>
         <button class="reset-button" type="button" id="resetButton">リセット</button>
       </header>
 
-      <section class="scoreboard" aria-label="スコア">
+      <section class="scoreboard" aria-label="ステータス">
         <div>
-          <span>YOU</span>
-          <strong id="playerScore">0</strong>
+          <span>距離</span>
+          <strong id="distanceText">0m</strong>
         </div>
         <div>
-          <span>CPU</span>
-          <strong id="cpuScore">0</strong>
+          <span>ライフ</span>
+          <strong id="lifeText">6</strong>
         </div>
         <div>
-          <span>RALLY</span>
-          <strong id="rallyCount">0</strong>
+          <span>障害物</span>
+          <strong id="obstacleText">0</strong>
         </div>
         <div>
-          <span>POWER</span>
-          <strong id="powerText">0%</strong>
+          <span>タイム</span>
+          <strong id="timeText">0.0</strong>
         </div>
       </section>
 
-      <section class="court-wrap">
-        <canvas id="game" width="720" height="960" aria-label="テニスゲーム"></canvas>
+      <section class="game-wrap">
+        <canvas id="game" width="960" height="540" aria-label="左から右に走る障害物ゲーム"></canvas>
         <div class="message" id="message">
-          <strong>スペースで相手サーブを受ける</strong>
-          <span>左右キー / A Dで移動。Q:クロス E:ストレート / Z:スピン X:スライス C:フラット。</span>
+          <strong>ゴールまで走れ</strong>
+          <span>スペース / ↑ / タップで2段ジャンプ。↓ / Sでスライディング。Rでリセット。</span>
         </div>
       </section>
 
-      <section class="shot-panel" aria-label="キー操作">
-        <div class="control-group">
-          <span>方向</span>
-          <kbd id="crossKey" class="choice active">Q クロス</kbd>
-          <kbd id="straightKey" class="choice">E ストレート</kbd>
-        </div>
-        <div class="control-group">
-          <span>球種</span>
-          <kbd id="spinKey" class="choice active">Z スピン</kbd>
-          <kbd id="sliceKey" class="choice">X スライス</kbd>
-          <kbd id="flatKey" class="choice">C フラット</kbd>
-        </div>
+      <section class="controls" aria-label="操作">
+        <button type="button" id="jumpButton">ジャンプ</button>
+        <button type="button" id="slideButton">スライディング</button>
       </section>
-
-      <div class="touch-controls" aria-label="タッチ操作">
-        <button type="button" id="upButton">左</button>
-        <button type="button" id="smashButton">スマッシュ</button>
-        <button type="button" id="downButton">右</button>
-      </div>
     </main>
 
     <script src="game.js"></script>

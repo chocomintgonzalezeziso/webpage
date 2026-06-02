@@ -1,15 +1,14 @@
 :root {
   color-scheme: dark;
-  --bg: #101613;
-  --panel: #17211c;
-  --panel-2: #203126;
-  --line: #38513f;
-  --court: #2f8a56;
-  --court-dark: #236944;
-  --ink: #f4f7ef;
-  --muted: #b7c6b8;
-  --accent: #f2cf5b;
-  --hot: #ff6b4a;
+  --bg: #10151f;
+  --panel: #172230;
+  --line: #38516d;
+  --ink: #f6f8fb;
+  --muted: #b7c3cf;
+  --accent: #ffd45d;
+  --danger: #ff6b5f;
+  --sky: #78b7ff;
+  --grass: #34a66a;
 }
 
 * {
@@ -23,8 +22,8 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at 20% 10%, rgba(242, 207, 91, 0.16), transparent 28rem),
-    linear-gradient(135deg, #101613 0%, #16241b 55%, #261c18 100%);
+    linear-gradient(180deg, rgba(120, 183, 255, 0.18), rgba(16, 21, 31, 0.86)),
+    linear-gradient(135deg, #10151f 0%, #13291f 58%, #2a1f18 100%);
 }
 
 button {
@@ -34,7 +33,7 @@ button {
 .app {
   width: min(1120px, calc(100% - 28px));
   margin: 0 auto;
-  padding: 24px 0 28px;
+  padding: 22px 0 28px;
 }
 
 .topbar {
@@ -56,20 +55,19 @@ button {
 
 h1 {
   margin: 0;
-  font-size: clamp(34px, 7vw, 72px);
+  font-size: clamp(36px, 7vw, 72px);
   line-height: 0.95;
 }
 
 .reset-button,
-.touch-controls button,
-.choice {
+.controls button {
   display: inline-grid;
   place-items: center;
   min-height: 44px;
-  border: 1px solid #6f7e65;
+  border: 1px solid #687c90;
   border-radius: 8px;
   color: var(--ink);
-  background: #263628;
+  background: #253243;
 }
 
 .reset-button {
@@ -88,7 +86,7 @@ h1 {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(23, 33, 28, 0.86);
+  background: rgba(23, 34, 48, 0.9);
 }
 
 .scoreboard span {
@@ -105,23 +103,23 @@ h1 {
   line-height: 1;
 }
 
-.court-wrap {
+.game-wrap {
   position: relative;
   overflow: hidden;
-  width: min(100%, 760px);
+  width: min(100%, 960px);
   margin: 0 auto;
-  border: 1px solid #5f795c;
+  border: 1px solid #5d7188;
   border-radius: 8px;
-  background: var(--court-dark);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  background: #162435;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
 }
 
 canvas {
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 4;
-  max-height: 76vh;
-  background: var(--court);
+  aspect-ratio: 16 / 9;
+  max-height: 74vh;
+  background: var(--sky);
   touch-action: none;
 }
 
@@ -132,10 +130,10 @@ canvas {
   gap: 6px;
   max-width: 620px;
   padding: 14px 16px;
-  border: 1px solid rgba(244, 247, 239, 0.22);
+  border: 1px solid rgba(246, 248, 251, 0.22);
   border-radius: 8px;
   color: var(--ink);
-  background: rgba(16, 22, 19, 0.82);
+  background: rgba(16, 21, 31, 0.82);
   backdrop-filter: blur(8px);
 }
 
@@ -152,57 +150,24 @@ canvas {
   display: none;
 }
 
-.shot-panel {
+.controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: min(100%, 760px);
+  gap: 10px;
+  width: min(100%, 960px);
   margin: 12px auto 0;
 }
 
-.control-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(23, 33, 28, 0.86);
-}
-
-.control-group span {
-  min-width: 42px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.choice {
-  min-height: 38px;
-  padding: 0 12px;
-  font-family: inherit;
-  font-size: 14px;
-}
-
-.choice.active {
-  border-color: #c99f37;
-  color: #14120a;
+#jumpButton {
+  border-color: #c79c34;
+  color: #171309;
   background: var(--accent);
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.touch-controls {
-  display: none;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.touch-controls button:nth-child(2) {
-  border-color: #c99f37;
-  color: #14120a;
-  background: var(--accent);
+#slideButton {
+  border-color: #4f95c7;
+  background: #1d4b68;
   font-weight: 800;
 }
 
@@ -227,13 +192,5 @@ canvas {
   .message {
     inset: auto 10px 10px 10px;
     padding: 12px;
-  }
-
-  .shot-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .touch-controls {
-    display: grid;
   }
 }
