@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <main class="app">
+    <main class="app choosing" id="app">
       <header class="topbar">
         <div>
           <p class="eyebrow">Side Runner</p>
@@ -16,14 +16,47 @@
         <button class="reset-button" type="button" id="resetButton">リセット</button>
       </header>
 
-      <section class="scoreboard" aria-label="ステータス">
+      <section class="character-select" id="characterSelect" aria-label="キャラクター選択">
+        <button class="character-button active" type="button" data-character="0">
+          <span class="character-avatar ace" aria-hidden="true">
+            <span class="avatar-cape"></span>
+            <span class="avatar-head"></span>
+            <span class="avatar-body"></span>
+            <span class="avatar-leg left"></span>
+            <span class="avatar-leg right"></span>
+          </span>
+          <span>エース</span>
+        </button>
+        <button class="character-button" type="button" data-character="1">
+          <span class="character-avatar blaze" aria-hidden="true">
+            <span class="avatar-cape"></span>
+            <span class="avatar-head"></span>
+            <span class="avatar-body"></span>
+            <span class="avatar-leg left"></span>
+            <span class="avatar-leg right"></span>
+          </span>
+          <span>ブレイズ</span>
+        </button>
+        <button class="character-button" type="button" data-character="2">
+          <span class="character-avatar neon" aria-hidden="true">
+            <span class="avatar-cape"></span>
+            <span class="avatar-head"></span>
+            <span class="avatar-body"></span>
+            <span class="avatar-leg left"></span>
+            <span class="avatar-leg right"></span>
+          </span>
+          <span>ネオン</span>
+        </button>
+      </section>
+
+      <section class="scoreboard race-only" aria-label="ステータス">
         <div>
           <span>距離</span>
           <strong id="distanceText">0m</strong>
         </div>
         <div>
           <span>ライフ</span>
-          <strong id="lifeText">6</strong>
+          <strong id="lifeText">9</strong>
         </div>
         <div>
           <span>障害物</span>
@@ -33,9 +66,13 @@
           <span>タイム</span>
           <strong id="timeText">0.0</strong>
         </div>
+        <div>
+          <span>スター</span>
+          <strong id="powerText">-</strong>
+        </div>
       </section>
 
-      <section class="game-wrap">
+      <section class="game-wrap race-only">
         <canvas id="game" width="960" height="540" aria-label="左から右に走る障害物ゲーム"></canvas>
         <div class="message" id="message">
           <strong>ゴールまで走れ</strong>
@@ -43,7 +80,7 @@
         </div>
       </section>
 
-      <section class="controls" aria-label="操作">
+      <section class="controls race-only" aria-label="操作">
         <button type="button" id="jumpButton">ジャンプ</button>
         <button type="button" id="slideButton">スライディング</button>
       </section>
