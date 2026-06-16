@@ -524,8 +524,7 @@ function damagePlayer(sourceX = playerWorldX(), sourceY = player.y - 34) {
   if (life <= 0) endGame(false);
 }
 
-function hitObstacle(obstacle) {
-  if (player.invincible > 0) return;
+function hitObstacle(obstacle, previousPlayerY, playerHitbox) {
   if (obstacle.type === "spring") {
     if (obstacle.cooldown > 0) return;
     obstacle.cooldown = 0.7;
@@ -547,6 +546,30 @@ function hitObstacle(obstacle) {
     }
     return;
   }
+
+  const playerBottom = playerHitbox.y + playerHitbox.height;
+  const obstacleTop = obstacle.y;
+  const stompedFromAbove = player.vy > 120 && previousPlayerY <= obstacleTop + 8 && playerBottom <= obstacleTop + 28;
+  if (stompedFromAbove) {
+    player.y = obstacleTop;
+    player.vy = -620;
+    player.sliding = false;
+    player.slideTimer = 0;
+    player.jumpsRemaining = 1;
+    sound("jump");
+    for (let i = 0; i < 10; i += 1) {
+      particles.push({
+        x: obstacle.x + obstacle.width / 2,
+        y: obstacleTop,
+        vx: -100 + Math.random() * 200,
+        vy: -120 + Math.random() * 80,
+        life: 0.32,
+        color: "#f8fafc",
+      });
+    }
+    return;
+  }
+
   damagePlayer();
 }
 
@@ -619,6 +642,7 @@ function collectStar(star) {
   if (star.collected) return;
   star.collected = true;
   starPowerTimer = 1;
+  player.invincible = Math.max(player.invincible, 4);
   player.jumpsRemaining = 2;
   sound("finish");
   for (let i = 0; i < 28; i += 1) {
@@ -799,7 +823,7 @@ function update(dt) {
     obstacles.forEach((obstacle) => {
       obstacle.cooldown = Math.max(0, obstacle.cooldown - dt);
       if (!obstacle.passed && obstacle.x + obstacle.width < playerWorldX() - 6) obstacle.passed = true;
-      if (intersects(rect, obstacle)) hitObstacle(obstacle);
+      if (intersects(rect, obstacle)) hitObstacle(obstacle, previousPlayerY, rect);
     });
   }
 
